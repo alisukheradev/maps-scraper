@@ -2,7 +2,11 @@ let scrollInterval = null;
 let profileCount = 0;
 
 function logToPopup(text) {
-  chrome.runtime.sendMessage({ type: "GM_LOG", text });
+  try {
+    chrome.runtime.sendMessage({ type: "GM_LOG", text });
+  } catch (e) {
+    console.error("Failed to send message to background script:", e);
+  }
 }
 
 function isEndOfList() {
@@ -28,12 +32,13 @@ function startScrolling(delayMin = 1200, delayMax = 2000) {
     return;
   }
 
-  const scrollContainer = document.querySelector("div[role='feed']");
-  if (!scrollContainer) {
-    logToPopup("❌ Could not find the results container.");
+  let scrollContainer = null;
+  try {
+    scrollContainer = document.querySelector("div[role='feed']");
+  } catch (e) {
+    logToPopup("❌ Error finding the scroll container: " + e.message);
     return;
   }
-
   logToPopup("✅ Scrolling started...");
 
   scrollInterval = setInterval(() => {

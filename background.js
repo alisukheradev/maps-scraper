@@ -5,19 +5,52 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     scrapedData.push(msg.data);
   }
   if (msg.action === "downloadCSV") {
-    let csvContent = "data:text/csv;charset=utf-8," 
-      + ["Business Name,Rating,Reviews,Latest Review Date,Latest Review Text,Email,Website,Business Hours,Profile Link"]
-      + "\n"
-      + scrapedData.map(r => [
-        r.name, r.rating, r.reviews, r.latestDate, r.latestText, 
-        r.email, r.website, r.hours, r.link
-      ].map(v => `"${v}"`).join(",")).join("\n");
+    let csvContent =
+      "data:text/csv;charset=utf-8," +
+      [
+        "Business Name,Rating,Reviews,Latest Review Date,Latest Review Text,Email,Website,Business Hours,Profile Link",
+      ] +
+      "\n" +
+      scrapedData
+        .map((r) =>
+          [
+            r.name,
+            r.rating,
+            r.reviews,
+            r.latestDate,
+            r.latestText,
+            r.email,
+            r.website,
+            r.hours,
+            r.link,
+          ]
+            .map((v) => `"${v}"`)
+            .join(",")
+        )
+        .join("\n");
 
-    let blob = new Blob([decodeURIComponent(encodeURI(csvContent))], { type: "text/csv" });
-    let url = URL.createObjectURL(blob);
-    chrome.downloads.download({
-      url: url,
-      filename: "maps_results.csv"
+    let blob = new Blob([decodeURIComponent(encodeURI(csvContent))], {
+      type: "text/csv",
     });
+    let url = URL.createObjectURL(blob);
+    try {
+      chrome.downloads.download(
+        {
+          url: url,
+          filename: "maps_results.csv",
+        },
+        (downloadId) => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              "Download failed: " + chrome.runtime.lastError.message
+            );
+          } else {
+            console.log("Download started successfully with ID:", downloadId);
+          }
+        }
+      );
+    } catch (e) {
+      console.error("Error during download request:", e);
+    }
   }
 });
