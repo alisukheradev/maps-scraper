@@ -24,6 +24,20 @@ document.getElementById("stop").addEventListener("click", async () => {
   document.getElementById("status").innerText = "Scrolling stopped.";
 });
 
+document.getElementById("download").addEventListener("click", () => {
+  console.log("Download button clicked. Sending request.");
+  chrome.runtime.sendMessage({ action: "downloadCSV" }, (response) => {
+    console.log("Response from background script:", response);
+    if (response && response.status === "no_data") {
+      document.getElementById("status").innerText =
+        "No profiles scraped yet. Start scrolling first!";
+    } else {
+      document.getElementById("status").innerText =
+        "Download initiated. Check your downloads folder.";
+    }
+  });
+});
+
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "GM_LOG") {
     document.getElementById("status").innerText = msg.text;
