@@ -63,8 +63,87 @@ function stopScrolling() {
     scrollInterval = null;
     logToPopup("⏹ Scrolling stopped.");
     logToPopup(`📊 Profiles collected so far: ${profileCount}`);
+    // Automatically save data when scrolling stops*******************************************
+    datasave();
   } else {
     logToPopup("Not scrolling right now.");
+  }
+}
+
+function datasave() {
+  try {
+    const feed = document.querySelector("div[role='feed']");
+    if (!feed) {
+      console.log("❌ Feed not found.");
+      return;
+    }
+
+    // Identify each feed item (card/article) and group its data
+    const items = feed.querySelectorAll("div[role='article'], div.Nv2PK");
+    const itemSet = new Set();
+
+    items.forEach((item, index) => {
+      const hrefs = new Set();
+      const ariaLabels = new Set();
+
+      item.querySelectorAll('[href]').forEach((node) => {
+        const v = node.getAttribute('href');
+        if (v) hrefs.add(v);
+      });
+
+      // Collect ALL aria-label values within this item (not just the first)
+      item.querySelectorAll('[aria-label]').forEach((node) => {
+        const v = node.getAttribute('aria-label');
+        if (v) ariaLabels.add(v);
+      });
+
+      const grouped = {
+        index,
+        tag: item.tagName,
+        id: item.id || null,
+        classes: item.className || '',
+        hrefs: Array.from(hrefs),
+        ariaLabels: Array.from(ariaLabels)
+      };
+      itemSet.add(grouped);
+    });
+    console.log(`🧩 Feed items grouped: ${items.length}`);
+  
+    // Transform groups to records matching background schema
+    const records = Array.from(itemSet).map((group) => {
+      // Extract rating and reviews from aria-labels using regex
+      let rating = '';
+      let reviews = '';
+      
+      for (const label of group.ariaLabels) {
+        // Look for pattern: float + string* + integer + string* (language independent ı think need to be tested)
+        const ratingReviewMatch = label.match(/(\d+[,.]?\d*).*?(\d+)/);
+        if (ratingReviewMatch) {
+          rating = ratingReviewMatch[1].replace(',', '.');
+          reviews = ratingReviewMatch[2];
+          break;
+        }
+      }
+      
+      return {
+        name: group.ariaLabels[0] || '',
+        rating: rating,
+        reviews: reviews,
+        link: group.hrefs[0] || '',
+      };
+    });
+
+    // Send ALL records in a single message
+    try {
+      const messageObj = { action: 'saveData', data: records };
+      chrome.runtime.sendMessage(messageObj);
+      console.log(`📤 saveData sent with ${records.length} records (single message).`);
+      console.log('📤 Sent object:', messageObj);
+    } catch (e) {
+      console.log('❌ Failed to send saveData batch:', e);
+    }
+  } catch (e) {
+    console.log("❌ datasave error: " + e.message);
   }
 }
 
