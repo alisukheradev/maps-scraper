@@ -3,7 +3,7 @@
   "name": "Maps Scraper - Scroll Test",
   "version": "1.0",
   "description": "Auto-scroll Google Maps sidebar until end of list.",
-  "permissions": ["scripting", "activeTab"],
+  "permissions": ["scripting", "activeTab", "downloads"],
   "background": {
     "service_worker": "background.js"
   },
